@@ -1,0 +1,6 @@
+bin
+sqlite*
+
+Gemfile.lock
+
+node_modules/
