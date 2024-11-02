@@ -246,7 +246,8 @@ const App = () => {
 
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold underline mb-4">Employee List</h1>
+        <h1 className="text-2xl font-bold underline mb-4">Keyhook Interview Task</h1>
+        <h2 className="text-2xl font-bold underline mb-4">Employee List</h2>
         <div className="flex gap-4 mb-4">
           <SearchBar value={globalFilter} onChange={setGlobalFilter} />
           <DepartmentFilter 
