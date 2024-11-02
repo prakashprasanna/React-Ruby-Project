@@ -12,9 +12,6 @@ require 'sinatra/base'
 require 'graphiti'
 require 'graphiti/adapters/active_record'
 
-# require_relative './models/department'
-# require_relative './models/employee'
-
 class ApplicationResource < Graphiti::Resource
   self.abstract_class = true
   self.adapter = Graphiti::Adapters::ActiveRecord
@@ -29,7 +26,7 @@ class DepartmentResource < ApplicationResource
   attribute :id, :integer
   attribute :name, :string
 
-  # Add the inverse relationship
+  # Add the relationship
   has_many :employees
 end
 
@@ -61,7 +58,7 @@ class EmployeeResource < ApplicationResource
   attribute :position, :string
   attribute :department_id, :integer
   
-  # Add a computed attribute for department name
+  # Computed attribute for department name
   attribute :department_name, :string do
     @object.department&.name
   end

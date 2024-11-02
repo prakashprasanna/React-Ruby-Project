@@ -165,17 +165,56 @@ const useTableColumns = () => {
   ], [])
 }
 
+// department filter
+const DepartmentFilter = ({ 
+  value, 
+  onChange, 
+  departments 
+}: { 
+  value: string, 
+  onChange: (value: string) => void,
+  departments: string[]
+}) => (
+  <div className="mb-4">
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="px-4 py-2 border rounded"
+    >
+      <option value="">All Departments</option>
+      {departments.map(dept => (
+        <option key={dept} value={dept}>
+          {dept}
+        </option>
+      ))}
+    </select>
+  </div>
+)
+
 // Main App Component
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
   
   const columns = useTableColumns()
   const { data: employees = [], isLoading, error } = useEmployees()
 
+  // Get unique department names
+  const departments = useMemo(() => {
+    const depts = employees.map((emp: Employee) => emp.departmentName)
+    return [...new Set(depts)].sort()
+  }, [employees])
+
+  // Filter employees by department
+  const filteredEmployees = useMemo(() => {
+    if (!departmentFilter) return employees
+    return employees.filter((emp: Employee) => emp.departmentName === departmentFilter)
+  }, [employees, departmentFilter])
+
   // table configuration object
   const tableConfig = useMemo(() => ({
-    data: employees,
+    data: filteredEmployees, // Used filtered employees instead of all employees
     columns,
     state: {
       sorting,
@@ -195,7 +234,7 @@ const App = () => {
       return firstName.toLowerCase().includes(searchValue) || 
              lastName.toLowerCase().includes(searchValue)
     },
-  }), [employees, columns, sorting, globalFilter])
+  }), [filteredEmployees, columns, sorting, globalFilter])
 
   // Initialize table with memoized config
   const table = useReactTable(tableConfig)
@@ -208,7 +247,14 @@ const App = () => {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-bold underline mb-4">Employee List</h1>
-        <SearchBar value={globalFilter} onChange={setGlobalFilter} />
+        <div className="flex gap-4 mb-4">
+          <SearchBar value={globalFilter} onChange={setGlobalFilter} />
+          <DepartmentFilter 
+            value={departmentFilter} 
+            onChange={setDepartmentFilter}
+            departments={departments as string[]}
+          />
+        </div>
         <div className="border rounded shadow-sm">
           <EmployeeTable table={table} />
           <PaginationControls table={table} />
