@@ -64,6 +64,7 @@ class EmployeeResource < ApplicationResource
   end
   
   belongs_to :department
+
 end
 
 Graphiti.setup!
@@ -123,4 +124,63 @@ class EmployeeDirectoryApp < Sinatra::Application
       department_columns: Department.column_names
     }.to_json
   end
+
+  # Employee endpoint to create a new employee
+  post '/api/v1/addEmployees' do
+    raw_body = request.body.read
+    puts "Raw body: #{raw_body}"  # Log the raw body
+
+    # Check if the body is empty
+    if raw_body.empty?
+      status 400
+      return { error: "Request body is empty." }.to_json
+    end
+
+    data = JSON.parse(raw_body) # Parse the JSON body
+    puts "Received params: #{data.inspect}"
+
+    # Validate presence of required fields
+    required_fields = %w[first_name last_name age position department_id]
+    missing_fields = required_fields.select do |field|
+      value = data[field]
+      value.nil? || (value.is_a?(String) && value.empty?)
+    end
+    
+    unless missing_fields.empty?
+      status 400
+      return { error: "Missing fields: #{missing_fields.join(', ')}" }.to_json
+    end
+
+    # Resolve department_id from department name
+    department = Department.find_by(name: data['department_id'])
+    if department.nil?
+      status 400
+      return { error: "Invalid department name." }.to_json
+    end
+    data['department_id'] = department.id
+
+    # Check for duplicate employee in the same department
+    existing_employee = Employee.find_by(
+      first_name: data['first_name'],
+      last_name: data['last_name'],
+      department_id: data['department_id']
+    )
+
+    if existing_employee
+      status 409
+      return { error: "Employee with the same name already exists in this department." }.to_json
+    end
+
+    # Create the new employee
+    employee = Employee.new(data)
+    if employee.save
+      status 201
+      employee.to_json
+    else
+      puts "Error saving employee: #{employee.errors.full_messages}" # Log the errors
+      status 422
+      { error: employee.errors.full_messages }.to_json
+    end
+  end
+
 end

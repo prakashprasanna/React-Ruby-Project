@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   createColumnHelper,
   flexRender,
@@ -165,7 +165,7 @@ const useTableColumns = () => {
   ], [])
 }
 
-// department filter
+// Department filter
 const DepartmentFilter = ({ 
   value, 
   onChange, 
@@ -191,12 +191,145 @@ const DepartmentFilter = ({
   </div>
 )
 
+// Modal component for adding a new employee
+const AddEmployeeModal = ({ isOpen, onClose, departments }: { isOpen: boolean; onClose: () => void; departments: string[] }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [age, setAge] = useState('');
+  const [position, setPosition] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('http://localhost:4567/api/v1/addEmployees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          age: Number(age), // Ensure age is a number
+          position: position,
+          department_id: departmentId,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to add employee');
+      }
+      return response.json();
+    },
+    onSuccess: (newEmployee) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refetch employees after adding
+      queryClient.setQueryData(['employees'], (oldData: any) => {
+        return [...(oldData || []), newEmployee]; // Add the new employee to the existing data
+      });
+      onClose(); // Close the modal
+      // Reset form fields
+      setFirstName('');
+      setLastName('');
+      setAge('');
+      setPosition('');
+      setDepartmentId('');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log({
+      first_name: firstName,
+      last_name: lastName,
+      age: age,
+      position: position,
+      department_id: departmentId,
+    });
+    mutation.mutate(); // Trigger the mutation to add the employee
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal">
+      <div className="modal-content flex flex-col items-center justify-center">
+        <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
+        <form onSubmit={handleSubmit} className="w-full">
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className="px-4 py-2 border rounded w-full"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="px-4 py-2 border rounded w-full"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="number"
+              placeholder="Age"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              required
+              className="px-4 py-2 border rounded w-full"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Position"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              required
+              className="px-4 py-2 border rounded w-full"
+            />
+          </div>
+          <div className="mb-4">
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              required
+              className="px-4 py-2 border rounded w-full"
+            >
+              <option value="">Select Department</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-center mt-4">
+            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+              Add Employee
+            </button>
+          </div>
+        </form>
+        <button onClick={onClose} className="mt-2 px-4 py-2 border rounded">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('')
-  
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   const columns = useTableColumns()
   const { data: employees = [], isLoading, error } = useEmployees()
 
@@ -249,17 +382,26 @@ const App = () => {
         <h1 className="text-2xl font-bold underline mb-4">Keyhook Interview Task</h1>
         <h2 className="text-2xl font-bold underline mb-4">Employee List</h2>
         <div className="flex gap-4 mb-4">
-          <SearchBar value={globalFilter} onChange={setGlobalFilter} />
-          <DepartmentFilter 
-            value={departmentFilter} 
-            onChange={setDepartmentFilter}
-            departments={departments as string[]}
-          />
-        </div>
+            <SearchBar value={globalFilter} onChange={setGlobalFilter} />
+            <DepartmentFilter 
+              value={departmentFilter} 
+              onChange={setDepartmentFilter}
+              departments={departments as string[]}
+            />
+        <div className="flex gap-4 mb-4">
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="px-4 py-2 border rounded text-gray hover:bg-gray-100 transition duration-200"
+            >
+              Add Employee
+            </button>
+        </div>  
+        </div>  
         <div className="border rounded shadow-sm">
           <EmployeeTable table={table} />
           <PaginationControls table={table} />
         </div>
+        <AddEmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} departments={departments as string[]}/>
       </div>
     )
   }
