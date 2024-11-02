@@ -91,6 +91,7 @@ class EmployeeDirectoryApp < Sinatra::Application
     departments.to_jsonapi
   end
 
+  # for future use not used currently in the given task
   get '/api/v1/departments/:id' do
     departments = DepartmentResource.find(params)
     departments.to_jsonapi
@@ -102,12 +103,13 @@ class EmployeeDirectoryApp < Sinatra::Application
     employees.to_jsonapi
   end
 
+    # for future use not used currently in the given task
   get '/api/v1/employees/:id' do
     employee = EmployeeResource.find(params)
     employee.to_jsonapi
   end
 
-  # Debug endpoint
+  # Debug endpoint - to get all the data available
   get '/debug/data' do
     content_type :json
     {
@@ -116,7 +118,7 @@ class EmployeeDirectoryApp < Sinatra::Application
     }.to_json
   end
 
-  # Schema endpoint
+  # Schema endpoint - to fetch column names to build EmployeeResource & DepartmentResouce structure correctly 
   get '/debug/schema' do
     content_type :json
     {
