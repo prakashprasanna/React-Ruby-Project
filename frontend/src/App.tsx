@@ -225,6 +225,7 @@ const AddEmployeeModal = ({ isOpen, onClose, departments }: { isOpen: boolean; o
       queryClient.setQueryData(['employees'], (oldData: any) => {
         return [...(oldData || []), newEmployee]; // Add the new employee to the existing data
       });
+      alert("New employee added");
       onClose(); // Close the modal
       // Reset form fields
       setFirstName('');
